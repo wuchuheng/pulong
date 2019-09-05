@@ -9,7 +9,7 @@ use Encore\Admin\Grid;
 use Encore\Admin\Show;
 use App\Models\Members as Member;
 use App\Models\MemberFollow;
-use App\Models\MemberEducation;
+use App\Models\Educations;
 use App\Models\Accounts;
 use App\Models\AccountLogs;
 use App\Models\Levels as Level;
@@ -75,7 +75,7 @@ EOT;
         ]
         );
         $grid->education_id('学历')->display(function($education_id){
-            $result = MemberEducation::where('id', $education_id)->first();
+            $result = Educations::where('id', $education_id)->first();
             return $result->name;
         });
         $grid->school('学校')->editable();
@@ -110,12 +110,6 @@ EOT;
         ];
         $grid->column('status','是否禁用')->switch($states);
 
-//        $status = [
-//            'on'  => ['value' => 0, 'text' => '否', 'color' => 'warning'],
-//            'off' => ['value' => 1, 'text' => '是', 'color' => 'success'],
-//        ];
-//        $grid->status()->switch($status);
-
 
         $grid->created_at('创建时间');
 
@@ -131,35 +125,45 @@ EOT;
     protected function detail($id)
     {
         $show = new Show(Members::findOrFail($id));
+        $show->panel()
+            ->tools(function ($tools) {
+                $tools->disableEdit();
+                $tools->disableList();
+                $tools->disableDelete();
+            });;
         $show->field('name', __('Name'));
-        $show->field('avatar', __('Avatar'));
-        $show->field('email', __('Email'));
-        $show->field('email_verified_at', __('Email verified at'));
-        $show->field('password', __('Password'));
-        $show->field('remember_token', __('Remember token'));
-        $show->field('openid', __('Openid'));
-        $show->field('nickname', __('Nickname'));
+        $show->avatar('头像')->as(function($avatar){
+            return $avatar->url; 
+        })->image();
+        $show->field('email', '邮箱');
+        $show->field('nickname', '昵称');
         $show->field('region_id', __('Region id'));
-        $show->field('sign', __('Sign'));
-        $show->field('sex', __('Sex'));
-        $show->field('age', __('Age'));
-        $show->field('born', __('Born'));
-        $show->field('job', __('Job'));
-        $show->field('weixin', __('Weixin'));
-        $show->field('phone', __('Phone'));
-        $show->field('phone_verified_at', __('Phone verified at'));
-        $show->field('phone_verified_code', __('Phone verified code'));
-        $show->field('school', __('School'));
-        $show->field('department', __('Department'));
-        $show->field('professional', __('Professional'));
-        $show->field('education_id', __('Education id'));
-        $show->field('start_school_at', __('Start school at'));
-        $show->field('hobby', __('Hobby'));
-        $show->field('next_plan', __('Next plan'));
-        $show->field('updated_at', __('Updated at'));
-        $show->field('created_at', __('Created at'));
-        $show->field('status', __('Status'));
-
+        $show->field('sign', '签名');
+        $show->field('sex', '性别')->as(function($sex_id){
+            return $sex_id == 1 ? '女' :  '男';
+        });
+        $show->field('age', '年龄');
+        $show->field('born', '生日');
+        $show->field('job', '职业')->as(function($job_id){
+            return $job_id  == 1 ?  '学生' : '老师';
+        });
+        $show->field('weixin', '微信');
+        $show->field('phone', '手机');
+        $show->field('school', '毕业学校');
+        $show->field('department', '院系');
+        $show->field('professional', "专业");
+        $show->field('education', '学历')->as(function($education){
+            if (isset($education->name))
+                return $education->name;
+            else 
+                return null;
+        });
+        $show->field('start_school_at', '入学时间');
+        $show->field('hobby', '爱好');
+        $show->field('next_plan', '近期动向');
+        $show->field('status', '是否禁用')->as(function($status_id){
+            return $status_id == 1 ? '正常' : '禁用';
+        });
         return $show;
     }
 

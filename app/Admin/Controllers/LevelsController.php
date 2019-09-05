@@ -3,74 +3,19 @@
 namespace App\Admin\Controllers;
 
 use App\Models\Levels;
-use App\Http\Controllers\Controller;
-use Encore\Admin\Controllers\HasResourceActions;
+use Encore\Admin\Controllers\AdminController;
 use Encore\Admin\Form;
 use Encore\Admin\Grid;
-use Encore\Admin\Layout\Content;
 use Encore\Admin\Show;
 
-class LevelsController extends Controller
+class LevelsController extends AdminController
 {
-    use HasResourceActions;
-
     /**
-     * Index interface.
+     * Title for current resource.
      *
-     * @param Content $content
-     * @return Content
+     * @var string
      */
-    public function index(Content $content)
-    {
-        return $content
-            ->header('Index')
-            ->description('description')
-            ->body($this->grid());
-    }
-
-    /**
-     * Show interface.
-     *
-     * @param mixed $id
-     * @param Content $content
-     * @return Content
-     */
-    public function show($id, Content $content)
-    {
-        return $content
-            ->header('Detail')
-            ->description('description')
-            ->body($this->detail($id));
-    }
-
-    /**
-     * Edit interface.
-     *
-     * @param mixed $id
-     * @param Content $content
-     * @return Content
-     */
-    public function edit($id, Content $content)
-    {
-        return $content
-            ->header('Edit')
-            ->description('description')
-            ->body($this->form()->edit($id));
-    }
-
-    /**
-     * Create interface.
-     *
-     * @param Content $content
-     * @return Content
-     */
-    public function create(Content $content)
-    {
-        return $content
-            ->header('Create')
-            ->description('description')
-            ->body($this->form());
-    }
+    protected $title = 'App\Models\Levels';
 
     /**
      * Make a grid builder.
@@ -99,9 +44,12 @@ class LevelsController extends Controller
     {
         $show = new Show(Levels::findOrFail($id));
 
-        $show->id('ID');
-        $show->created_at('Created at');
-        $show->updated_at('Updated at');
+        $show->field(' id', __(' id'));
+        $show->field('name', '爵位');
+        $show->field('annotation', '规则说明');
+        $show->field('eg_follows', '粉丝量');
+        $show->field('eg_money', '额度');
+        $show->field('order_num', '自定义排序');
 
         return $show;
     }
@@ -114,7 +62,13 @@ class LevelsController extends Controller
     protected function form()
     {
         $form = new Form(new Levels);
-        $form->text('eg_follows', '粉丝量');
+
+        $form->number(' id', __(' id'));
+        $form->text('name', '爵位');
+        $form->text('annotation', '规则说明');
+        $form->number('eg_follows', '粉丝量')->rules('required|numeric');
+        $form->number('eg_money', '额度')->rules('required|numeric');
+        $form->number('order_num', '自定义排序')->rules('required|numeric');
         return $form;
     }
 }
