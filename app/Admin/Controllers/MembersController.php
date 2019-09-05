@@ -173,7 +173,7 @@ EOT;
         $form = new Form(new Members);
         $form->text('name', '姓名');
         $form->text('password', '密码');
-t       $form->image('avatar.url', '头像')->move('public/upload/image1');;
+        $form->image('avatar.url', '头像')->move('public/upload/image1');;
         $form->date('born', '生日');
         $form->text('next_plan', '近期动向');
         $form->date('start_school_at', '入学年份');
