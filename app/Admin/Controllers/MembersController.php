@@ -15,6 +15,7 @@ use App\Models\AccountLogs;
 use App\Models\Levels as Level;
 use App\Models\Region;
 use App\Models\Favorites;
+use App\Models\Images;
 
 class MembersController extends AdminController
 {
@@ -23,7 +24,7 @@ class MembersController extends AdminController
      *
      * @var string
      */
-    protected $title = 'App\Models\Members';
+    protected $title = '会员';
 
     /**
      * Make a grid builder.
@@ -34,49 +35,61 @@ class MembersController extends AdminController
     {
         $grid = new Grid(new Member);
         $grid->disableCreateButton();
-        $grid->disableActions();
+        //$grid->disableActions();
         $grid->filter(function($filter){
             // 在这里添加字段过滤器
+            $filter->between('created_at', '创建时间')->datetime();
             $filter->like('nickname', '昵称')->placeholder('请输入昵称');
             $filter->equal('phone', '手机号码')->placeholder('请输入手机号码');
         });
 
         $grid->id('ID')->sortable();
-        $grid->avatar('头像')->display(function ($avatar) {
+        $grid->column('avatar.url')->display(function ($avatar) {
+            $avatar =  '/uploads/' . $avatar;
             $el = <<< EOT
             <a href="{$avatar}" class="grid-popup-link"> <img src="{$avatar}" style="max-width:50px;max-height:50px" class="img img-thumbnail"> </a>
 EOT;
             return $el;
         });
-        $grid->nickname('昵称');
+        $grid->nickname('昵称')->editable();
         $grid->sign('个性签名')->editable();
-        $grid->sex('性别')->using(['2' => '男', '1' => '女']);
-        $grid->age('年龄')->sortable();
-        $grid->born('生日');
+        $status = [
+            'on'  => ['value' => 1, 'text' => '女', 'color' => 'warning'],
+            'off' => ['value' => 2, 'text' => '男', 'color' => 'success'],
+        ];
+        $grid->column('sex', '性别')->switch($status);
+        $grid->age('年龄')->sortable()->editable();
+        $grid->born('生日')->display(function($date){
+            return date('Y-m-d', strtotime($date));
+        })->editable('date');
         $grid->region_id('所在地')->display(function($region_id){
             $region = Region::where('id', $region_id)->first();
             if ($region) return $region->MergerName;
         });
-        $grid->phone('手机号码');
-        $grid->email('邮箱');
-        $grid->weixin('微信');
-        $grid->job('职业')->using(['1' => '学生', '1' => '老师']);
+        $grid->phone('手机号码')->editable();
+        $grid->email('邮箱')->editable();
+        $grid->weixin('微信')->editable();
+        $grid->column('job', '老师')->switch([
+            'on'  => ['value' => 1, 'text' => '学生', 'color' => 'warning'],
+            'off' => ['value' => 2, 'text' => '老师', 'color' => 'success'],
+        ]
+        );
         $grid->education_id('学历')->display(function($education_id){
             $result = MemberEducation::where('id', $education_id)->first();
             return $result->name;
         });
-        $grid->school('学校');
-        $grid->department('院系');
-        $grid->professional('专业');
-        $grid->start_school_at('入学年份');
-        $grid->next_plan('近期动向');
+        $grid->school('学校')->editable();
+        $grid->department('院系')->editable();
+        $grid->professional('专业')->editable();
+        $grid->start_school_at('入学年份')->editable('date');
+        $grid->next_plan('近期动向')->editable();
         $grid->hobby('兴趣爱好')->editable();
         $grid->follow('关注')->display(function(){
-            $count = MemberFollow::where('uid', $this->id)->count();
+            $count = MemberFollow::where("member_id", $this->id)->count();
             return $count;
         });
         $grid->fans('粉丝')->display(function(){
-            $count = MemberFollow::where('follow_uid', $this->id)->count();
+            $count = MemberFollow::where('follow_member_id', $this->id)->count();
             return $count;
         });
         $grid->balance('龙币');
@@ -89,18 +102,22 @@ EOT;
             else
                 return "暂无等级";
         });
-        $grid->status('状态')->using(['1'=>'正常', '0'=>'禁用'])
-            ->label([
-                0 => 'warning',
-                1 => 'success'
-            ])->filter(
-                [
-                    0 => '禁用',
-                    1 => '正常',
-                ]
-            );
+
+
+        $states = [
+            'on'  => ['value' => 0, 'text' => '封号', 'color' => 'primary'],
+            'off' => ['value' => 1, 'text' => '正常', 'color' => 'default'],
+        ];
+        $grid->column('status','是否禁用')->switch($states);
+
+//        $status = [
+//            'on'  => ['value' => 0, 'text' => '否', 'color' => 'warning'],
+//            'off' => ['value' => 1, 'text' => '是', 'color' => 'success'],
+//        ];
+//        $grid->status()->switch($status);
+
+
         $grid->created_at('创建时间');
-        return $grid;
 
         return $grid;
     }
@@ -114,8 +131,6 @@ EOT;
     protected function detail($id)
     {
         $show = new Show(Members::findOrFail($id));
-
-        $show->field('id', __('Id'));
         $show->field('name', __('Name'));
         $show->field('avatar', __('Avatar'));
         $show->field('email', __('Email'));
@@ -156,34 +171,37 @@ EOT;
     protected function form()
     {
         $form = new Form(new Members);
-
-        $form->text('name', __('Name'));
-        $form->image('avatar', __('Avatar'));
-        $form->email('email', __('Email'));
-        $form->text('email_verified_at', __('Email verified at'));
-        $form->password('password', __('Password'));
-        $form->text('remember_token', __('Remember token'));
-        $form->text('openid', __('Openid'));
-        $form->text('nickname', __('Nickname'));
-        $form->number('region_id', __('Region id'));
-        $form->text('sign', __('Sign'));
-        $form->number('sex', __('Sex'));
-        $form->number('age', __('Age'));
-        $form->datetime('born', __('Born'))->default(date('Y-m-d H:i:s'));
-        $form->number('job', __('Job'))->default(1);
-        $form->text('weixin', __('Weixin'));
-        $form->number('phone', __('Phone'));
-        $form->number('phone_verified_at', __('Phone verified at'));
-        $form->text('phone_verified_code', __('Phone verified code'));
-        $form->text('school', __('School'));
-        $form->text('department', __('Department'));
-        $form->text('professional', __('Professional'));
-        $form->number('education_id', __('Education id'));
-        $form->datetime('start_school_at', __('Start school at'))->default(date('Y-m-d H:i:s'));
-        $form->text('hobby', __('Hobby'));
-        $form->text('next_plan', __('Next plan'));
-        $form->number('status', __('Status'));
-
+        $form->text('name', '姓名');
+        $form->text('password', '密码');
+t       $form->image('avatar.url', '头像')->move('public/upload/image1');;
+        $form->date('born', '生日');
+        $form->text('next_plan', '近期动向');
+        $form->date('start_school_at', '入学年份');
+        $form->text('email', '邮件')->rules('email');
+        $form->text('weixin', '微信号');
+        $form->text('school', '毕业学校');
+        $form->text('professional', '专业');
+        $form->text('department', '院系');
+        $form->text('age', '年龄')->rules('required|numeric');
+        $form->text('phone', '手机')->rules('required|numeric');
+        $form->switch('sex', '性别')->states([
+            'on'  => ['value' => 1, 'text' => '女', 'color' => 'warning'],
+            'off' => ['value' => 2, 'text' => '男', 'color' => 'success'],
+        ]);
+        $form->switch('job', '职业')->states([
+            'on'  => ['value' => 1, 'text' => '学生', 'color' => 'warning'],
+            'off' => ['value' => 2, 'text' => '老师', 'color' => 'success'],
+        ]);
+        $states = [
+            'on'  => ['value' => 0, 'text' => '封号', 'color' => 'primary'],
+            'off' => ['value' => 1, 'text' => '正常', 'color' => 'default'],
+        ];
+        $form->switch('status', '是否封号')->states($states);
+        $form->saving(function (Form $form) {
+            if ($form->password && $form->model()->password != $form->password) {
+                $form->password = bcrypt($form->password);
+            }
+        });
         return $form;
     }
 }

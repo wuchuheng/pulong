@@ -80,11 +80,12 @@ class LevelsController extends Controller
     protected function grid()
     {
         $grid = new Grid(new Levels);
-
-        $grid->id('ID');
-        $grid->created_at('Created at');
-        $grid->updated_at('Updated at');
-
+        $grid->column('id', 'ID')->sortable();
+        $grid->name('爵位');
+        $grid->annotation('规则说明')->editable();
+        $grid->eg_follows('粉丝量')->editable();
+        $grid->eg_money('额度')->editable();
+        $grid->order_num('自定义排序')->editable();
         return $grid;
     }
 
@@ -113,11 +114,7 @@ class LevelsController extends Controller
     protected function form()
     {
         $form = new Form(new Levels);
-
-        $form->display('ID');
-        $form->display('Created at');
-        $form->display('Updated at');
-
+        $form->text('eg_follows', '粉丝量');
         return $form;
     }
 }

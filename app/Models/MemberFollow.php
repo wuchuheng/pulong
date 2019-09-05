@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class MemberFollow extends Model
 {
-    protected $table = 'member_follow';
+    protected $table = 'member_follows';
 
     /**
      *  获取粉丝量
@@ -15,7 +15,7 @@ class MemberFollow extends Model
      */
     public  static  function  countFansByUid(int $uid)
     {
-        $is_int = self::where('follow_uid', $uid)
+        $is_int = self::where('follow_member_id', $uid)
             ->count();
         return $is_int;
     }
