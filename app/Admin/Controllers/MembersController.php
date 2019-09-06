@@ -16,6 +16,8 @@ use App\Models\Levels as Level;
 use App\Models\Region;
 use App\Models\Favorites;
 use App\Models\Images;
+use App\Models\Comments;
+use Encore\Admin\Widgets\Table;
 
 class MembersController extends AdminController
 {
@@ -44,7 +46,7 @@ class MembersController extends AdminController
         });
 
         $grid->id('ID')->sortable();
-        $grid->column('avatar.url')->display(function ($avatar) {
+        $grid->column('avatar.url', '头像')->display(function ($avatar) {
             $avatar =  '/uploads/' . $avatar;
             $el = <<< EOT
             <a href="{$avatar}" class="grid-popup-link"> <img src="{$avatar}" style="max-width:50px;max-height:50px" class="img img-thumbnail"> </a>
@@ -69,14 +71,14 @@ EOT;
         $grid->phone('手机号码')->editable();
         $grid->email('邮箱')->editable();
         $grid->weixin('微信')->editable();
-        $grid->column('job', '老师')->switch([
+        $grid->column('job', '职业')->switch([
             'on'  => ['value' => 1, 'text' => '学生', 'color' => 'warning'],
             'off' => ['value' => 2, 'text' => '老师', 'color' => 'success'],
         ]
         );
         $grid->education_id('学历')->display(function($education_id){
             $result = Educations::where('id', $education_id)->first();
-            return $result->name;
+            return $result->name ?? null;
         });
         $grid->school('学校')->editable();
         $grid->department('院系')->editable();
@@ -84,14 +86,76 @@ EOT;
         $grid->start_school_at('入学年份')->editable('date');
         $grid->next_plan('近期动向')->editable();
         $grid->hobby('兴趣爱好')->editable();
-        $grid->follow('关注')->display(function(){
-            $count = MemberFollow::where("member_id", $this->id)->count();
-            return $count;
+        $grid->column('becomment', '被评论')->display(function($model){
+            return Comments::countCommentByMemberid($this->id);
+        })->expand(function($model){
+                $has_comments = Comments::getCommentsByMemberid($this->id);
+                $data = [];
+                if (count($has_comments)  >  0) {
+                    foreach($has_comments as $el) {
+                        $tmp['id'] = $el['id'];
+                        $tmp['nickname'] = $el['name'];
+                        $tmp['content'] = $el['content'];
+                        $tmp['title'] = $el['title'];
+                        $tmp['created_at'] = $el['created_at'];
+                        $data[] = $tmp;
+                    }
+                }
+                return new Table(['ID', '评论人', '内容', '被评论的资源', '时间'], $data); 
+            });
+        $grid->column('posts', '发布')
+            ->display(function($posts){
+                return count($posts);
+            })
+        ->expand(function($model){
+            $Member = Members::where('id', $this->id)->with(['posts'=>function($query){
+                $query->orderby('id', 'descc')->take(10)->select('*');
+            }])->first();
+              $data = [];
+              if ($Member->posts) {
+                  foreach($Member->posts as $el) {
+                        $tmp['id']  = $el['id'];
+                        $tmp['title'] = $el['title'];
+                        $tmp['created_at'] = $el['created_at'];
+                        $data[] = $tmp;
+                  }
+              } 
+              return new Table(['ID', '标题', '发布时间'], $data);
         });
-        $grid->fans('粉丝')->display(function(){
-            $count = MemberFollow::where('follow_member_id', $this->id)->count();
-            return $count;
-        });
+        $grid->column('follows', '关注')
+            ->display(function(){
+                $Data= Member::where('id', $this->id)->withCount('follows')->first();
+                return $Data->follows_count;
+            })
+            ->expand(function($model){
+                $hasData = Member::where('id', $this->id)->with('follows')->first();
+                $data = []; 
+                if (isset($hasData->follows) && $hasData->follows) {
+                    foreach($hasData->follows as $el) {
+                        $tmp['id'] = $el['id'];
+                        $tmp['nickname'] = $el['nickname'];
+                        $data[] = $tmp;
+                    } 
+                }
+                return new Table(['ID', '昵称'], $data);
+            });
+        $grid->column('favorites', '收藏')
+            ->display(function($model) {
+                $hasData = Member::where('id', $this->id)->withCount('favorites')->first();
+                return $hasData->favorites_count;
+            })
+            ->expand(function($model){
+                $hasData = Member::where('id', $this->id)->withCount('favorites')->first();
+                $data = []; 
+                if (isset($hasData->favorites) && $hasData->follows) {
+                    foreach($hasData->favorites as $el) {
+                        $tmp['id'] = $el['id'];
+                        $tmp['title'] = $el['title'];
+                        $data[] = $tmp;
+                    } 
+                }
+                return new Table(['ID', '标题'], $data);
+            });
         $grid->balance('龙币');
         $grid->level('等级')->display(function(){
             $money = AccountLogs::getMaxBetweenTimeByUid($this->id,  time() - 60*60*24*365);
@@ -102,7 +166,6 @@ EOT;
             else
                 return "暂无等级";
         });
-
 
         $states = [
             'on'  => ['value' => 0, 'text' => '封号', 'color' => 'primary'],
@@ -130,7 +193,7 @@ EOT;
                 $tools->disableEdit();
                 $tools->disableList();
                 $tools->disableDelete();
-            });;
+            });
         $show->field('name', __('Name'));
         $show->avatar('头像')->as(function($avatar){
             return $avatar->url; 

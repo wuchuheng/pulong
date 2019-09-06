@@ -6,6 +6,9 @@ use Illuminate\Database\Eloquent\Model;
 use App\Models\Images;
 use App\Models\Region;
 use App\Models\Educations;
+use App\Models\Posts;
+use App\Models\MemberFollow;
+use App\Models\Favorites;
 
 class Members extends Model
 {
@@ -46,6 +49,33 @@ class Members extends Model
     public function education()
     {
        return $this->hasOne(Educations::class, 'id', 'education_id');
+    }
+
+    /**
+     * 关联发布资源
+     */
+    public function posts()
+    {
+        return $this->hasMany(Posts::class, 'member_id', 'id');
+    }
+
+    /**
+     * 关联他的关注
+     *
+     */
+    public function follows()
+    {
+        return $this->belongsToMany(Members::class, 'member_follows', 'member_id', 'follow_member_id');
+    }
+
+
+    /**
+     * 关联他的收藏
+     *  
+     */
+    public function favorites() : object
+    {
+        return $this->belongsToMany(Posts::class, 'favorites', 'member_id', 'post_id');
     }
 
 }

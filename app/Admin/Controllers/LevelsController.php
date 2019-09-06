@@ -15,7 +15,7 @@ class LevelsController extends AdminController
      *
      * @var string
      */
-    protected $title = 'App\Models\Levels';
+    protected $title = '会员等级';
 
     /**
      * Make a grid builder.
@@ -42,7 +42,7 @@ class LevelsController extends AdminController
      */
     protected function detail($id)
     {
-        $show = new Show(Levels::findOrFail($id));
+        $Show = new Show(Levels::findOrFail($id));
 
         $show->field(' id', __(' id'));
         $show->field('name', '爵位');

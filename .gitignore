@@ -12,3 +12,5 @@ yarn-error.log
 .env
 *.swp
 *.swo
+tags
+.tags
